@@ -1,6 +1,6 @@
 defmodule UserTest do
   use ExUnit.Case
-  alias ChirperCore.User
+  alias Twitter.Core.User
 
   test "creates a new user" do
     {:ok, user} =

@@ -1,1 +1,1 @@
-alias ChirperCore.{Chirp, Comment, Like, User}
+alias Twitter.Core.{Comment, User, Timeline, Tweet, TweetLog}
