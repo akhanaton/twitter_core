@@ -18,6 +18,10 @@ defmodule Twitter.Core.TweetServer do
     GenServer.call(via_tuple(username), :get_last)
   end
 
+  def get_tweet(%User{username: username}, tweet_id) do
+    GenServer.call(via_tuple(username), {:get_tweet, tweet_id})
+  end
+
   def tweet(%Tweet{} = tweet, %User{username: username}) do
     GenServer.call(via_tuple(username), {:tweet, tweet})
   end
@@ -35,6 +39,13 @@ defmodule Twitter.Core.TweetServer do
   def handle_call(:get_last_tweet, _caller, state) do
     last = TweetLog.get_last(state)
     reply_success(state, last)
+  end
+
+  def handle_call({:get_tweet, tweet_id}, _caller, state) do
+    case TweetLog.get_tweet(state, tweet_id) do
+      {:ok, tweet} -> reply_success(state, tweet)
+      {:error, error_message} -> reply_success(state, {:error, error_message})
+    end
   end
 
   def handle_call({:tweet, tweet}, _caller, state) do
@@ -56,12 +67,17 @@ defmodule Twitter.Core.TweetServer do
     ProcessRegistry.via_tuple({__MODULE__, username})
   end
 
+  defp log_owner(user_id) do
+    [{_user_id, log_owner}] = :ets.lookup(:user_state, user_id)
+    log_owner
+  end
+
   defp reply_success(%{} = state, reply) do
     {:reply, reply, state}
   end
 
   defp update_timelines(%{tweets: _tweets, user_id: user_id}) do
-    [{_user_id, log_owner}] = :ets.lookup(:user_state, user_id)
+    log_owner = log_owner(user_id)
 
     [{my_pid, _}] =
       Registry.lookup(

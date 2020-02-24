@@ -42,6 +42,13 @@ defmodule Twitter.Core.TweetLog do
     tweet
   end
 
+  def get_tweet(%TweetLog{tweets: tweets}, tweet_id) do
+    case Map.fetch(tweets, tweet_id) do
+      {:ok, tweet} -> {:ok, tweet}
+      :error -> {:error, :tweet_not_found}
+    end
+  end
+
   def all_tweets(%TweetLog{tweets: tweets}) do
     Enum.map(tweets, fn {_tweet_id, tweet} ->
       tweet
@@ -59,7 +66,7 @@ defmodule Twitter.Core.TweetLog do
         {:ok, %{tweet_list | tweets: new_tweets}}
 
       :error ->
-        {:error, :nonexistent_tweet}
+        {:error, :tweet_not_found}
     end
   end
 

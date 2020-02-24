@@ -22,6 +22,10 @@ defmodule Twitter.Core.Account do
     GenServer.call(via_tuple(username), {:add_to_timeline, tweet})
   end
 
+  def tweets(%User{username: username}) do
+    GenServer.call(via_tuple(username), :show_tweets)
+  end
+
   def toggle_follower(%User{username: username}, %User{} = follower) do
     GenServer.call(via_tuple(username), {:toggle_follower, follower})
   end
@@ -31,6 +35,30 @@ defmodule Twitter.Core.Account do
   def init(user) do
     send(self(), {:set_state, user})
     {:ok, %{}, @timeout}
+  end
+
+  def handle_call(:user, _caller, %{user: user_details, timeline: _timeline} = state) do
+    reply_success(state, user_details)
+  end
+
+  def handle_call(:show_tweets, _caller, %{user: user_details, timeline: timeline} = state) do
+    result =
+      Stream.map(timeline.tweets, fn {tweet_id, tweet} ->
+        user =
+          case tweet.user_id == user_details.id do
+            true ->
+              user_details
+
+            false ->
+              [{_user_id, username}] = :ets.lookup(:user_state, tweet.user_id)
+              GenServer.call(via_tuple(username), :user)
+          end
+
+        GenServer.call(TweetServer.via_tuple(user.username), {:get_tweet, tweet_id})
+      end)
+      |> Enum.sort_by(& &1.created, &Timex.after?/2)
+
+    reply_success(state, result)
   end
 
   def handle_call(

@@ -25,7 +25,7 @@ defmodule Twitter.Core.Timeline do
         {:ok, %Timeline{timeline | tweets: new_tweets}}
 
       :error ->
-        {:error, :nonexistent_tweet}
+        {:error, :tweet_not_found}
     end
   end
 end

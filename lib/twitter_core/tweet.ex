@@ -32,7 +32,7 @@ defmodule Twitter.Core.Tweet do
         {:ok, %{tweet | comments: new_comments}}
 
       :error ->
-        {:error, :non_existent_comment}
+        {:error, :comment_not_found}
     end
   end
 
@@ -69,7 +69,7 @@ defmodule Twitter.Core.Tweet do
         {:ok, %{tweet | comments: new_comments}}
 
       :error ->
-        {:error, :non_existent_comment}
+        {:error, :comment_not_found}
     end
   end
 end
