@@ -1,16 +1,19 @@
 defmodule Twitter.Core.Timeline do
-  alias Twitter.Core.{Timeline, Tweet, User}
+  alias __MODULE__
+  alias Twitter.Core.Tweet
 
-  @enforce_keys [:tweets, :user]
-  defstruct [:tweets, :user]
+  @enforce_keys [:tweets]
+  defstruct [:tweets]
 
-  def new(user), do: %Timeline{tweets: %{}, user: user}
+  def new(), do: %Timeline{tweets: %{}}
 
-  def add(%Timeline{tweets: tweets} = timeline, %Tweet{created: created, id: id}, %User{
-        id: user_id
-      }) do
-    tweet_meta = %{created: created, id: id, user_id: user_id}
-    new_tweets = Map.put(tweets, id, tweet_meta)
+  def add(
+        %Timeline{tweets: tweets} = timeline,
+        %Tweet{created: created, id: tweet_id, user_id: user_id}
+      )
+      when tweet_id != nil do
+    tweet_meta = %{created: created, tweet_id: tweet_id, user_id: user_id}
+    new_tweets = Map.put(tweets, tweet_id, tweet_meta)
     %Timeline{timeline | tweets: new_tweets}
   end
 

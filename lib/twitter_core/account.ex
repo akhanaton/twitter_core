@@ -1,0 +1,175 @@
+defmodule Twitter.Core.Account do
+  alias Twitter.Core.{
+    ProcessRegistry,
+    Timeline,
+    Tweet,
+    TweetLogSupervisor,
+    TweetServer,
+    User
+  }
+
+  use GenServer, restart: :transient
+
+  @timeout 60 * 60 * 1000
+
+  # Interface functions
+
+  def start_link(%User{username: username} = user) when is_binary(username) do
+    GenServer.start_link(__MODULE__, user, name: via_tuple(username))
+  end
+
+  def add_to_timeline(%User{username: username}, %Tweet{} = tweet) do
+    GenServer.call(via_tuple(username), {:add_to_timeline, tweet})
+  end
+
+  def toggle_follower(%User{username: username}, %User{} = follower) do
+    GenServer.call(via_tuple(username), {:toggle_follower, follower})
+  end
+
+  # Server functions
+
+  def init(user) do
+    send(self(), {:set_state, user})
+    {:ok, %{}, @timeout}
+  end
+
+  def handle_call(
+        {:toggle_follower, follower},
+        _caller,
+        %{timeline: _timeline, user: user_details} = state
+      ) do
+    with new_user = %User{} <- User.toggle_follower(user_details, follower),
+         %User{} <-
+           GenServer.call(
+             via_tuple(follower.username),
+             {:toggle_following, user_details}
+           ) do
+      new_state = %{state | user: new_user}
+      reply_success(new_state, new_user)
+    else
+      _ -> reply_success(state, user_details)
+    end
+  end
+
+  def handle_call(
+        {:toggle_following, %User{} = followed_user},
+        _caller,
+        %{timeline: _timeline, user: user_details} = state
+      ) do
+    new_user = User.toggle_following(user_details, followed_user)
+
+    %{state | user: new_user}
+    |> reply_success(new_user)
+  end
+
+  def handle_cast(
+        {:add_to_timeline, tweet},
+        %{user: user, timeline: timeline}
+      ) do
+    new_timeline = Timeline.add(timeline, tweet)
+    state = %{user: user, timeline: new_timeline}
+    {:noreply, state}
+  end
+
+  def handle_cast(
+        {:followed_tweets_to_timeline, %Tweet{} = tweet, %User{}},
+        %{
+          user: _user,
+          timeline: timeline
+        } = state
+      ) do
+    new_timeline = Timeline.add(timeline, tweet)
+    new_state = %{state | timeline: new_timeline}
+    {:noreply, new_state}
+  end
+
+  def handle_info({:set_state, %User{username: username} = user}, _state) do
+    user_details =
+      case :ets.lookup(:user_state, username) do
+        [] -> create_user(user)
+        [{_key, state}] -> state
+      end
+
+    tweets = my_tweets(username) ++ following_tweets(user_details)
+
+    timeline = Timeline.new()
+
+    Enum.each(tweets, fn tweet ->
+      GenServer.cast(via_tuple(username), {:add_to_timeline, tweet})
+    end)
+
+    state = %{user: user_details, timeline: timeline}
+    :ets.insert(:user_state, {user_details.username, user_details})
+    :ets.insert(:user_state, {user_details.id, user_details.username})
+    IO.puts("started account server for #{user_details.username}")
+    {:noreply, state, @timeout}
+  end
+
+  def handle_info(:timeout, state),
+    do: {:stop, {:shutdown, :timeout}, state}
+
+  def handle_info(
+        :update_timeline,
+        %{
+          user: %User{username: username} = user,
+          timeline: timeline
+        } = state
+      ) do
+    new_tweet = GenServer.call(TweetServer.via_tuple(username), :get_last_tweet)
+    new_timeline = Timeline.add(timeline, new_tweet)
+    new_state = %{state | timeline: new_timeline}
+    update_followers(user, new_tweet)
+    {:noreply, new_state}
+  end
+
+  def terminate({:shutdown, :timeout}, _state) do
+    :ok
+  end
+
+  def terminate(_reason, _state), do: :ok
+
+  def via_tuple(username) do
+    ProcessRegistry.via_tuple({__MODULE__, username})
+  end
+
+  # Private functions
+  defp create_user(%User{
+         email: email,
+         name: name,
+         username: username
+       }) do
+    with {:ok, user} <- User.new(email, name, username) do
+      IO.puts("User created.")
+
+      user = %{user | id: UUID.uuid1()}
+      TweetLogSupervisor.log_process(user)
+
+      user
+    end
+  end
+
+  defp my_tweets(username) do
+    GenServer.call(TweetServer.via_tuple(username), :all_tweets)
+  end
+
+  defp following_tweets(%User{following: following}) do
+    Enum.reduce(following, [], fn followed_user, acc ->
+      [{_user_id, followed_username}] = :ets.lookup(:user_state, followed_user)
+
+      GenServer.call(TweetServer.via_tuple(followed_username), :all_tweets) ++ acc
+    end)
+  end
+
+  defp reply_success(%{user: user_details, timeline: _timeline} = state, reply) do
+    :ets.insert(:user_state, {user_details.username, user_details})
+    :ets.insert(:user_state, {user_details.id, user_details.username})
+    {:reply, reply, state, @timeout}
+  end
+
+  defp update_followers(user, tweet) do
+    Enum.each(user.followers, fn follower ->
+      [{_user_id, follower_username}] = :ets.lookup(:user_state, follower)
+      GenServer.cast(via_tuple(follower_username), {:followed_tweets_to_timeline, tweet, user})
+    end)
+  end
+end

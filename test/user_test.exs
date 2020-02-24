@@ -6,11 +6,10 @@ defmodule UserTest do
     {:ok, user} =
       User.new(
         "akhanaton@gmail.com",
-        "Enitan",
-        "Williams",
+        "Enitan Williams",
         "enitan"
       )
 
-    assert user.first_name == "Enitan"
+    assert user.name == "Enitan"
   end
 end

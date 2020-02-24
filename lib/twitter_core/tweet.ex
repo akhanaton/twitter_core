@@ -1,5 +1,6 @@
 defmodule Twitter.Core.Tweet do
-  alias Twitter.Core.{Comment, Tweet, User}
+  alias __MODULE__
+  alias Twitter.Core.{Comment, User}
 
   @enforce_keys [:content, :title]
 
@@ -9,7 +10,8 @@ defmodule Twitter.Core.Tweet do
     :content,
     :id,
     :likes,
-    :title
+    :title,
+    :user_id
   ]
 
   def add_comment(

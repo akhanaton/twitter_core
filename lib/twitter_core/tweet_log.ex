@@ -1,9 +1,10 @@
 defmodule Twitter.Core.TweetLog do
-  alias Twitter.Core.{Tweet, TweetLog}
+  alias __MODULE__
+  alias Twitter.Core.{Tweet, User}
 
   defstruct [:user_id, tweets: %{}]
 
-  def new(user_id, tweet \\ %{}) do
+  def new(%User{id: user_id}, tweet \\ %{}) when user_id != nil do
     case Map.has_key?(tweet, :created) do
       false ->
         %TweetLog{user_id: user_id}
@@ -15,14 +16,36 @@ defmodule Twitter.Core.TweetLog do
   end
 
   def add_tweet(
-        %TweetLog{tweets: tweets} = tweet_list,
+        %TweetLog{tweets: tweets, user_id: user_id} = tweet_list,
         %Tweet{} = tweet
       ) do
     id = UUID.uuid1()
-    tweet = Map.put(tweet, :id, id)
+    tweet = %{tweet | id: id, user_id: user_id}
     new_tweets = Map.put(tweets, id, tweet)
 
-    %TweetLog{tweet_list | tweets: new_tweets}
+    {:ok, %TweetLog{tweet_list | tweets: new_tweets}}
+  end
+
+  def get_last(%TweetLog{tweets: tweets}) do
+    [head | _tail] =
+      Enum.sort(tweets, fn {_key1, tweet1}, {_key2, tweet2} ->
+        case Date.compare(tweet1.created, tweet2.created) do
+          :lt ->
+            true
+
+          _ ->
+            false
+        end
+      end)
+
+    {_key, tweet} = head
+    tweet
+  end
+
+  def all_tweets(%TweetLog{tweets: tweets}) do
+    Enum.map(tweets, fn {_tweet_id, tweet} ->
+      tweet
+    end)
   end
 
   def update_tweet(
