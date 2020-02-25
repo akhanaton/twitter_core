@@ -51,7 +51,8 @@ defmodule Twitter.Core.Account do
 
             false ->
               [{_user_id, username}] = :ets.lookup(:user_state, tweet.user_id)
-              GenServer.call(via_tuple(username), :user)
+              [{_username, user_details}] = :ets.lookup(:user_state, username)
+              user_details
           end
 
         GenServer.call(TweetServer.via_tuple(user.username), {:get_tweet, tweet_id})
