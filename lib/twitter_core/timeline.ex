@@ -9,10 +9,10 @@ defmodule Twitter.Core.Timeline do
 
   def add(
         %Timeline{tweets: tweets} = timeline,
-        %Tweet{created: created, id: tweet_id, user_id: user_id}
+        %Tweet{id: tweet_id, user_id: user_id}
       )
       when tweet_id != nil do
-    tweet_meta = %{created: created, tweet_id: tweet_id, user_id: user_id}
+    tweet_meta = %{tweet_id: tweet_id, user_id: user_id}
     new_tweets = Map.put(tweets, tweet_id, tweet_meta)
     %Timeline{timeline | tweets: new_tweets}
   end

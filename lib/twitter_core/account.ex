@@ -85,10 +85,12 @@ defmodule Twitter.Core.Account do
         _caller,
         %{timeline: _timeline, user: user_details} = state
       ) do
-    new_user = User.toggle_following(user_details, followed_user)
-
-    %{state | user: new_user}
-    |> reply_success(new_user)
+    with new_user = %User{} <- User.toggle_following(user_details, followed_user) do
+      %{state | user: new_user}
+      |> reply_success(new_user)
+    else
+      _ -> reply_success(state, state)
+    end
   end
 
   def handle_cast(
@@ -177,16 +179,16 @@ defmodule Twitter.Core.Account do
     end
   end
 
-  defp my_tweets(username) do
-    GenServer.call(TweetServer.via_tuple(username), :all_tweets)
-  end
-
   defp following_tweets(%User{following: following}) do
     Enum.reduce(following, [], fn followed_user, acc ->
       [{_user_id, followed_username}] = :ets.lookup(:user_state, followed_user)
 
       GenServer.call(TweetServer.via_tuple(followed_username), :all_tweets) ++ acc
     end)
+  end
+
+  defp my_tweets(username) do
+    GenServer.call(TweetServer.via_tuple(username), :all_tweets)
   end
 
   defp reply_success(%{user: user_details, timeline: _timeline} = state, reply) do
