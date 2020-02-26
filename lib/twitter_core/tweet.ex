@@ -2,13 +2,14 @@ defmodule Twitter.Core.Tweet do
   alias __MODULE__
   alias Twitter.Core.{Comment, User}
 
-  @enforce_keys [:content, :title]
+  @enforce_keys [:content, :is_visible?, :title]
 
   defstruct [
     :created,
     :comments,
     :content,
     :id,
+    :is_visible?,
     :likes,
     :title,
     :user_id
@@ -41,6 +42,7 @@ defmodule Twitter.Core.Tweet do
       created: Timex.now(),
       comments: %{},
       content: content,
+      is_visible?: true,
       likes: MapSet.new(),
       title: title
     }

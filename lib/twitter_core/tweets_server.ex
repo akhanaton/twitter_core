@@ -14,6 +14,10 @@ defmodule Twitter.Core.TweetServer do
     GenServer.call(via_tuple(username), :all_tweets)
   end
 
+  def delete_tweet(%User{username: username}, %Tweet{} = tweet) do
+    GenServer.call(via_tuple(username), {:delete_tweet, tweet})
+  end
+
   def get_last_tweet(%User{username: username}) do
     GenServer.call(via_tuple(username), :get_last)
   end
@@ -34,6 +38,13 @@ defmodule Twitter.Core.TweetServer do
   def handle_call(:all_tweets, _caller, state) do
     all_tweets = TweetLog.all_tweets(state)
     reply_success(state, all_tweets)
+  end
+
+  def handle_call({:delete_tweet, tweet}, _caller, state) do
+    case TweetLog.delete_tweet(state, tweet) do
+      {:ok, new_state} -> reply_success(new_state, :ok)
+      {:error, message} -> reply_success(state, message)
+    end
   end
 
   def handle_call(:get_last_tweet, _caller, state) do

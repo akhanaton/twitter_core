@@ -4,17 +4,6 @@ defmodule Twitter.Core.TweetLog do
 
   defstruct [:user_id, tweets: %{}]
 
-  def new(%User{id: user_id}, tweet \\ %{}) when user_id != nil do
-    case Map.has_key?(tweet, :created) do
-      false ->
-        %TweetLog{user_id: user_id}
-
-      _ ->
-        %TweetLog{user_id: user_id}
-        |> add_tweet(tweet)
-    end
-  end
-
   def add_tweet(
         %TweetLog{tweets: tweets, user_id: user_id} = tweet_list,
         %Tweet{} = tweet
@@ -24,6 +13,25 @@ defmodule Twitter.Core.TweetLog do
     new_tweets = Map.put(tweets, id, tweet)
 
     {:ok, %TweetLog{tweet_list | tweets: new_tweets}}
+  end
+
+  def all_tweets(%TweetLog{tweets: tweets}) do
+    Stream.map(tweets, fn {_tweet_id, tweet} ->
+      tweet
+    end)
+    |> Enum.reject(&(&1.is_visible? == false))
+  end
+
+  def delete_tweet(%TweetLog{tweets: tweets} = tweet_list, %Tweet{id: tweet_id}) do
+    case Map.fetch(tweets, tweet_id) do
+      {:ok, tweet} ->
+        deleted_tweet = %{tweet | is_visible?: false}
+        updated_tweets = Map.put(tweets, tweet_id, deleted_tweet)
+        {:ok, %TweetLog{tweet_list | tweets: updated_tweets}}
+
+      :error ->
+        {:error, :invalid_delete_operation}
+    end
   end
 
   def get_last(%TweetLog{tweets: tweets}) do
@@ -44,15 +52,24 @@ defmodule Twitter.Core.TweetLog do
 
   def get_tweet(%TweetLog{tweets: tweets}, tweet_id) do
     case Map.fetch(tweets, tweet_id) do
-      {:ok, tweet} -> {:ok, tweet}
-      :error -> {:error, :tweet_not_found}
+      {:ok, tweet} ->
+        scrubbed_tweet = scrub_deleted_tweet(tweet)
+        {:ok, scrubbed_tweet}
+
+      :error ->
+        {:error, :tweet_not_found}
     end
   end
 
-  def all_tweets(%TweetLog{tweets: tweets}) do
-    Enum.map(tweets, fn {_tweet_id, tweet} ->
-      tweet
-    end)
+  def new(%User{id: user_id}, tweet \\ %{}) when user_id != nil do
+    case Map.has_key?(tweet, :created) do
+      false ->
+        %TweetLog{user_id: user_id}
+
+      _ ->
+        %TweetLog{user_id: user_id}
+        |> add_tweet(tweet)
+    end
   end
 
   def update_tweet(
@@ -70,14 +87,10 @@ defmodule Twitter.Core.TweetLog do
     end
   end
 
-  def delete_tweet(%TweetLog{tweets: tweets} = tweet_list, %Tweet{id: tweet_id}) do
-    case Map.fetch(tweets, tweet_id) do
-      {:ok, _} ->
-        new_tweets = Map.delete(tweets, tweet_id)
-        {:ok, %{tweet_list | tweets: new_tweets}}
-
-      :error ->
-        {:error, :invalid_delete_operation}
+  defp scrub_deleted_tweet(%Tweet{is_visible?: is_visible} = tweet) do
+    case is_visible do
+      true -> tweet
+      false -> %{tweet | content: "", likes: MapSet.new(), title: ""}
     end
   end
 end
