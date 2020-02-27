@@ -75,4 +75,18 @@ defmodule Twitter.Core.Tweet do
         {:error, :comment_not_found}
     end
   end
+
+  def update_comment(
+        %Tweet{comments: comments} = tweet,
+        %Comment{id: comment_id} = new_comment
+      ) do
+    case Map.fetch(comments, comment_id) do
+      {:ok, comment} ->
+        new_comments = Map.put(comments, comment.id, new_comment)
+        {:ok, %{tweet | comments: new_comments}}
+
+      :error ->
+        {:error, :comment_not_found}
+    end
+  end
 end
