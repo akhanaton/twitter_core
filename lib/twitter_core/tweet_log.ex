@@ -88,9 +88,21 @@ defmodule Twitter.Core.TweetLog do
   end
 
   defp scrub_deleted_tweet(%Tweet{is_visible?: is_visible} = tweet) do
-    case is_visible do
-      true -> tweet
-      false -> %{tweet | content: "", likes: MapSet.new(), title: ""}
-    end
+    new_tweet =
+      case is_visible do
+        true -> tweet
+        false -> %{tweet | content: "", likes: MapSet.new(), title: ""}
+      end
+
+    comments =
+      Stream.map(tweet.comments, fn {key, value} = comment ->
+        case value.is_visible? do
+          true -> comment
+          false -> {key, %{value | text: ""}}
+        end
+      end)
+      |> Enum.into(%{})
+
+    %{new_tweet | comments: comments}
   end
 end

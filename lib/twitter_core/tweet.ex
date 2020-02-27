@@ -23,14 +23,15 @@ defmodule Twitter.Core.Tweet do
     id = UUID.uuid1()
     comment = Comment.new(id, user_id, text)
     new_comments = Map.put(comments, id, comment)
-    %Tweet{tweet | comments: new_comments}
+    {:ok, %Tweet{tweet | comments: new_comments}}
   end
 
   def delete_comment(%Tweet{comments: comments} = tweet, %Comment{id: comment_id}) do
-    case Map.fetch(tweet.comments, comment_id) do
-      {:ok, _} ->
-        new_comments = Map.delete(comments, comment_id)
-        {:ok, %{tweet | comments: new_comments}}
+    case Map.fetch(comments, comment_id) do
+      {:ok, comment} ->
+        deleted_comment = %{comment | is_visible?: false}
+        updated_comments = Map.put(comments, comment_id, deleted_comment)
+        {:ok, %{tweet | comments: updated_comments}}
 
       :error ->
         {:error, :comment_not_found}

@@ -1,7 +1,7 @@
 defmodule Twitter.Core.TweetServer do
   use GenServer, restart: :permanent
 
-  alias Twitter.Core.{ProcessRegistry, Tweet, TweetLog, User}
+  alias Twitter.Core.{Comment, ProcessRegistry, Tweet, TweetLog, User}
 
   # Interface functions
 
@@ -10,8 +10,24 @@ defmodule Twitter.Core.TweetServer do
     GenServer.start_link(__MODULE__, user, name: via_tuple(username))
   end
 
+  def add_comment(%User{username: username}, %Tweet{} = tweet, comment) do
+    GenServer.call(via_tuple(username), {:add_comment, {tweet, comment}})
+  end
+
   def all_tweets(%User{username: username}) do
     GenServer.call(via_tuple(username), :all_tweets)
+  end
+
+  def delete_comment(
+        %User{username: username} = _tweet_log_owner,
+        %User{id: deleter_id} = _comment_deleter,
+        %Tweet{} = tweet,
+        %Comment{user_id: commenter_id} = comment
+      ) do
+    case commenter_id == deleter_id do
+      true -> GenServer.call(via_tuple(username), {:delete_comment, tweet, comment})
+      false -> {:error, :not_your_comment}
+    end
   end
 
   def delete_tweet(%User{username: username}, %Tweet{} = tweet) do
@@ -26,13 +42,29 @@ defmodule Twitter.Core.TweetServer do
     GenServer.call(via_tuple(username), {:get_tweet, tweet_id})
   end
 
-  def tweet(%Tweet{} = tweet, %User{username: username}) do
+  def tweet(%User{username: username}, %Tweet{} = tweet) do
     GenServer.call(via_tuple(username), {:tweet, tweet})
   end
 
   def init(user) do
     send(self(), {:set_state, user})
     {:ok, %{}}
+  end
+
+  def handle_call(
+        {:add_comment, {tweet, comment}},
+        _caller,
+        %{tweets: _tweets, user_id: user_id} = state
+      ) do
+    tweet_user_details = user_details(tweet.user_id)
+    my_details = user_details(user_id)
+
+    with {:ok, tweet} <- Tweet.add_comment(tweet, my_details, comment) do
+      GenServer.cast(via_tuple(tweet_user_details.username), {:update_tweet, tweet})
+      reply_success(state, :ok)
+    else
+      error_message = {:error, _message} -> reply_success(state, error_message)
+    end
   end
 
   def handle_call(:all_tweets, _caller, state) do
@@ -44,6 +76,20 @@ defmodule Twitter.Core.TweetServer do
     case TweetLog.delete_tweet(state, tweet) do
       {:ok, new_state} -> reply_success(new_state, :ok)
       {:error, message} -> reply_success(state, message)
+    end
+  end
+
+  def handle_call(
+        {:delete_comment, tweet, comment},
+        _caller,
+        state
+      ) do
+    with {:ok, %Tweet{} = deleted_tweet} <- Tweet.delete_comment(tweet, comment),
+         {:ok, %TweetLog{} = new_state} <-
+           TweetLog.update_tweet(state, deleted_tweet) do
+      reply_success(new_state, :ok)
+    else
+      {:error, message} -> reply_success(state, {:error, message})
     end
   end
 
@@ -69,6 +115,13 @@ defmodule Twitter.Core.TweetServer do
     end
   end
 
+  def handle_cast({:update_tweet, %Tweet{} = tweet}, state) do
+    case TweetLog.update_tweet(state, tweet) do
+      {:ok, new_state} -> {:noreply, new_state}
+      _ -> {:noreply, state}
+    end
+  end
+
   def handle_info({:set_state, user}, _state) do
     state = TweetLog.new(user)
     {:noreply, state}
@@ -81,6 +134,12 @@ defmodule Twitter.Core.TweetServer do
   defp log_owner(user_id) do
     [{_user_id, log_owner}] = :ets.lookup(:user_state, user_id)
     log_owner
+  end
+
+  defp user_details(user_id) do
+    log_owner = log_owner(user_id)
+    [{_key, user_details}] = :ets.lookup(:user_state, log_owner)
+    user_details
   end
 
   defp reply_success(%{} = state, reply) do
