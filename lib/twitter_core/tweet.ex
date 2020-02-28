@@ -2,7 +2,7 @@ defmodule Twitter.Core.Tweet do
   alias __MODULE__
   alias Twitter.Core.{Comment, User}
 
-  @enforce_keys [:content, :is_visible?, :title]
+  @enforce_keys [:content, :is_visible?]
 
   defstruct [
     :created,
@@ -11,7 +11,6 @@ defmodule Twitter.Core.Tweet do
     :id,
     :is_visible?,
     :likes,
-    :title,
     :user_id
   ]
 
@@ -38,14 +37,13 @@ defmodule Twitter.Core.Tweet do
     end
   end
 
-  def new(content, title) when is_binary(content),
+  def new(content) when is_binary(content),
     do: %Tweet{
       created: Timex.now(),
       comments: %{},
       content: content,
       is_visible?: true,
-      likes: MapSet.new(),
-      title: title
+      likes: MapSet.new()
     }
 
   def toggle_like(%Tweet{likes: likes} = tweet, %User{id: user_id}) do
@@ -57,22 +55,6 @@ defmodule Twitter.Core.Tweet do
       _ ->
         likes = MapSet.delete(likes, user_id)
         %{tweet | likes: likes}
-    end
-  end
-
-  def update_comment(
-        %Tweet{comments: comments} = tweet,
-        %Comment{id: comment_id},
-        text
-      ) do
-    case Map.fetch(comments, comment_id) do
-      {:ok, comment} ->
-        new_comment = %{comment | text: text}
-        new_comments = Map.put(comments, comment.id, new_comment)
-        {:ok, %{tweet | comments: new_comments}}
-
-      :error ->
-        {:error, :comment_not_found}
     end
   end
 
