@@ -149,7 +149,7 @@ defmodule Twitter.Core.Account do
     new_tweet = GenServer.call(TweetServer.via_tuple(username), :get_last_tweet)
     new_timeline = Timeline.add(timeline, new_tweet)
     new_state = %{state | timeline: new_timeline}
-    update_followers(user, new_tweet)
+    update_followers_timelines(user, new_tweet)
     {:noreply, new_state}
   end
 
@@ -197,7 +197,7 @@ defmodule Twitter.Core.Account do
     {:reply, reply, state, @timeout}
   end
 
-  defp update_followers(user, tweet) do
+  defp update_followers_timelines(user, tweet) do
     Enum.each(user.followers, fn follower ->
       [{_user_id, follower_username}] = :ets.lookup(:user_state, follower)
       GenServer.cast(via_tuple(follower_username), {:followed_tweets_to_timeline, tweet, user})

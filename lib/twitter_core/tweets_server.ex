@@ -38,7 +38,7 @@ defmodule Twitter.Core.TweetServer do
   end
 
   def get_last_tweet(%User{username: username}) do
-    GenServer.call(via_tuple(username), :get_last)
+    GenServer.call(via_tuple(username), :get_last_tweet)
   end
 
   def get_tweet(%User{username: username}, tweet_id) do
@@ -135,7 +135,7 @@ defmodule Twitter.Core.TweetServer do
 
   def handle_call({:tweet, tweet}, _caller, state) do
     with {:ok, new_state} <- TweetLog.add_tweet(state, tweet) do
-      update_timelines(new_state)
+      update_my_timeline(new_state)
       reply_success(new_state, new_state)
     else
       :error ->
@@ -210,7 +210,7 @@ defmodule Twitter.Core.TweetServer do
     {:reply, reply, state}
   end
 
-  defp update_timelines(%{tweets: _tweets, user_id: user_id}) do
+  defp update_my_timeline(%{tweets: _tweets, user_id: user_id}) do
     log_owner = log_owner(user_id)
 
     [{my_pid, _}] =
