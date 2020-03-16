@@ -1,10 +1,13 @@
 defmodule UserTest do
-  use ExUnit.Case
-  alias Twitter.Core.User
+  use ExUnit.Case, async: true
+
+  @subject Twitter.Core.User
+
+  # doctest @subject
 
   setup do
     {:ok, user} =
-      User.new(
+      @subject.new(
         "jane@gmail.com",
         "Jane Jacobs",
         "jane"
@@ -14,44 +17,58 @@ defmodule UserTest do
     [user: user]
   end
 
-  test "creates a new user", user do
-    setup_user = user[:user]
-    assert setup_user.name =~ "Jane Jacobs"
-    assert setup_user.email =~ "jane@gmail.com"
-    assert setup_user.username =~ "jane"
+  describe "new/3" do
+    test "returns {:ok, user}" do
+      expected_name = "Jane Jacobs"
+      expected_email = "jane@gmail.com"
+      expected_username = "jane"
+
+      {:ok, actual_user} =
+        @subject.new(
+          "jane@gmail.com",
+          "Jane Jacobs",
+          "jane"
+        )
+
+      %{name: name, email: email, username: username} = actual_user
+
+      assert ^name = expected_name
+      assert ^email = expected_email
+      assert ^username = expected_username
+    end
   end
 
-  test "add/remove user from followers", user do
-    setup_user = user[:user]
+  describe "toggle_follower/2" do
+    test "will toggle user id of passed in follower", user do
+      setup_user = user[:user]
 
-    # create a user to follow setup_user
-    {:ok, follower} = User.new("jdoe@gmail.com", "John Doe", "jdog")
-    follower = %{follower | id: UUID.uuid1()}
+      # create a user to follow setup_user
+      {:ok, follower} = @subject.new("jdoe@gmail.com", "John Doe", "jdog")
+      follower = %{follower | id: UUID.uuid1()}
 
-    # user `follower` follows `setup_user`
-    setup_user = %User{} = User.toggle_follower(setup_user, follower)
-    assert MapSet.member?(setup_user.followers, follower.id) == true
-    assert follower.id in setup_user.followers
+      # user `follower` follows `setup_user`
+      setup_user = %@subject{} = @subject.toggle_follower(setup_user, follower)
+      assert MapSet.member?(setup_user.followers, follower.id) == true
 
-    # user `follower` unfollows  `setup_user`
-    setup_user = %User{} = User.toggle_follower(setup_user, follower)
-    assert MapSet.member?(setup_user.followers, follower.id) == false
-  end
+      # user `follower` unfollows  `setup_user`
+      setup_user = %@subject{} = @subject.toggle_follower(setup_user, follower)
+      refute MapSet.member?(setup_user.followers, follower.id) == true
+    end
 
-  test "add/remove user from following", user do
-    setup_user = user[:user]
+    test "toggle_following/2 will toggle user id of users being followed", user do
+      setup_user = user[:user]
 
-    # create a user for setup_user to follow
-    {:ok, followed} = User.new("jdoe@gmail.com", "John Doe", "jdog")
-    followed = %{followed | id: UUID.uuid1()}
+      # create a user for setup_user to follow
+      {:ok, followed} = @subject.new("jdoe@gmail.com", "John Doe", "jdog")
+      followed = %{followed | id: UUID.uuid1()}
 
-    # user `follow` follows `setup_user`
-    setup_user = %User{} = User.toggle_following(setup_user, followed)
-    assert MapSet.member?(setup_user.following, followed.id) == true
-    assert followed.id in setup_user.following
+      # user `follow` follows `setup_user`
+      setup_user = %@subject{} = @subject.toggle_following(setup_user, followed)
+      assert MapSet.member?(setup_user.following, followed.id) == true
 
-    # user `follow` unfollows  `setup_user`
-    setup_user = %User{} = User.toggle_following(setup_user, followed)
-    assert MapSet.member?(setup_user.followers, followed.id) == false
+      # user `follow` unfollows  `setup_user`
+      setup_user = %@subject{} = @subject.toggle_following(setup_user, followed)
+      refute MapSet.member?(setup_user.followers, followed.id) == true
+    end
   end
 end

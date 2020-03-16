@@ -19,10 +19,16 @@ defmodule Twitter.Core.Tweet do
         %User{id: user_id},
         text
       ) do
-    id = UUID.uuid1()
-    comment = Comment.new(id, user_id, text)
-    new_comments = Map.put(comments, id, comment)
-    {:ok, %Tweet{tweet | comments: new_comments}}
+    case user_id == nil do
+      true ->
+        {:error, :invalid_user}
+
+      false ->
+        id = UUID.uuid1()
+        comment = Comment.new(id, user_id, text)
+        new_comments = Map.put(comments, id, comment)
+        {:ok, %Tweet{tweet | comments: new_comments}}
+    end
   end
 
   def delete_comment(%Tweet{comments: comments} = tweet, %Comment{id: comment_id}) do
@@ -37,7 +43,7 @@ defmodule Twitter.Core.Tweet do
     end
   end
 
-  def new(content) when is_binary(content),
+  def new(content),
     do: %Tweet{
       created: Timex.now(),
       comments: %{},
@@ -45,6 +51,8 @@ defmodule Twitter.Core.Tweet do
       is_visible?: true,
       likes: MapSet.new()
     }
+
+  def new(), do: {:error, :no_content}
 
   def toggle_like(%Tweet{likes: likes} = tweet, %User{id: user_id}) do
     case Enum.find(likes, &(&1 == user_id)) do

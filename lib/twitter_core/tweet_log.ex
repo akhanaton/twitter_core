@@ -34,6 +34,10 @@ defmodule Twitter.Core.TweetLog do
     end
   end
 
+  def get_last(%TweetLog{tweets: tweets}) when tweets == %{} do
+    {:error, :no_tweets}
+  end
+
   def get_last(%TweetLog{tweets: tweets}) do
     [head | _tail] =
       Enum.sort(tweets, fn {_key1, tweet1}, {_key2, tweet2} ->

@@ -7,11 +7,18 @@ defmodule Twitter.Core.Timeline do
 
   def new(), do: %Timeline{tweets: %{}}
 
+  def add(_timeline, %Tweet{id: tweet_id})
+      when tweet_id == nil,
+      do: {:error, :invalid_tweet}
+
+  def add(_timeline, %Tweet{user_id: user_id})
+      when user_id == nil,
+      do: {:error, :invalid_user}
+
   def add(
         %Timeline{tweets: tweets} = timeline,
         %Tweet{id: tweet_id, user_id: user_id}
-      )
-      when tweet_id != nil do
+      ) do
     tweet_meta = %{tweet_id: tweet_id, user_id: user_id}
     new_tweets = Map.put(tweets, tweet_id, tweet_meta)
     %Timeline{timeline | tweets: new_tweets}

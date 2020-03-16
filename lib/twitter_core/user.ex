@@ -1,6 +1,10 @@
 defmodule Twitter.Core.User do
   alias __MODULE__
 
+  @moduledoc ~S"""
+    Create a `user` with the ability for other users to follow/unfollow
+  """
+
   @enforce_keys [:email, :name, :username]
 
   defstruct [
@@ -11,6 +15,24 @@ defmodule Twitter.Core.User do
     :name,
     :username
   ]
+
+  @doc """
+    Create a new user
+
+  ## Examples
+
+      iex> Twitter.Core.User.new("alice@fakemail.fake", "Alice B.", "alice")
+      {:ok,
+       %Twitter.Core.User{
+         email: "alice@fakemail.fake",
+         followers: #MapSet<[]>,
+         following: #MapSet<[]>,
+         id: nil,
+         name: "Alice B.",
+         username: "alice"
+       }}
+
+  """
 
   def new(email, name, username),
     do:
