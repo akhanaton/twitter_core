@@ -1,5 +1,5 @@
 defmodule TimelineTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   @subject Twitter.Core.Timeline
   alias Twitter.Core.{Tweet, User}

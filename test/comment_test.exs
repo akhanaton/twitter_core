@@ -1,5 +1,5 @@
 defmodule CommentTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   @subject Twitter.Core.Comment
 

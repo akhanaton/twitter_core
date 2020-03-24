@@ -18,10 +18,6 @@ defmodule Twitter.Core.Account do
     GenServer.start_link(__MODULE__, user, name: via_tuple(username))
   end
 
-  def add_to_timeline(%User{username: username}, %Tweet{} = tweet) do
-    GenServer.call(via_tuple(username), {:add_to_timeline, tweet})
-  end
-
   def tweets(%User{username: username}) do
     GenServer.call(via_tuple(username), :show_tweets)
   end
