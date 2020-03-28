@@ -1,5 +1,6 @@
 defmodule Twitter.Core.Account do
   alias Twitter.Core.{
+    LiveUpdates,
     ProcessRegistry,
     Timeline,
     Tweet,
@@ -101,12 +102,14 @@ defmodule Twitter.Core.Account do
   def handle_cast(
         {:followed_tweets_to_timeline, %Tweet{} = tweet, %User{}},
         %{
-          user: _user,
+          user: user,
           timeline: timeline
         } = state
       ) do
     new_timeline = Timeline.add(timeline, tweet)
     new_state = %{state | timeline: new_timeline}
+    LiveUpdates.notify_live_view(user.username, {__MODULE__, [:timeline_updated], []})
+
     {:noreply, new_state}
   end
 
@@ -145,6 +148,7 @@ defmodule Twitter.Core.Account do
     new_tweet = GenServer.call(TweetServer.via_tuple(username), :get_last_tweet)
     new_timeline = Timeline.add(timeline, new_tweet)
     new_state = %{state | timeline: new_timeline}
+    LiveUpdates.notify_live_view(username, {__MODULE__, [:timeline_updated], []})
     update_followers_timelines(user, new_tweet)
     {:noreply, new_state}
   end
