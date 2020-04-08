@@ -6,7 +6,7 @@ defmodule UserTest do
   # doctest @subject
 
   setup do
-    {:ok, user} =
+    user =
       @subject.new(
         "jane@gmail.com",
         "Jane Jacobs",
@@ -18,12 +18,12 @@ defmodule UserTest do
   end
 
   describe "new/3" do
-    test "returns {:ok, user}" do
+    test "returns user" do
       expected_name = "Jane Jacobs"
       expected_email = "jane@gmail.com"
       expected_username = "jane"
 
-      {:ok, actual_user} =
+      actual_user =
         @subject.new(
           "jane@gmail.com",
           "Jane Jacobs",
@@ -43,7 +43,7 @@ defmodule UserTest do
       setup_user = user[:user]
 
       # create a user to follow setup_user
-      {:ok, follower} = @subject.new("jdoe@gmail.com", "John Doe", "jdog")
+      follower = @subject.new("jdoe@gmail.com", "John Doe", "jdog")
       follower = %{follower | id: UUID.uuid1()}
 
       # user `follower` follows `setup_user`
@@ -59,7 +59,7 @@ defmodule UserTest do
       setup_user = user[:user]
 
       # create a user for setup_user to follow
-      {:ok, followed} = @subject.new("jdoe@gmail.com", "John Doe", "jdog")
+      followed = @subject.new("jdoe@gmail.com", "John Doe", "jdog")
       followed = %{followed | id: UUID.uuid1()}
 
       # user `follow` follows `setup_user`

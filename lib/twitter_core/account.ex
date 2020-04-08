@@ -169,7 +169,7 @@ defmodule Twitter.Core.Account do
          name: name,
          username: username
        }) do
-    with {:ok, user} <- User.new(email, name, username) do
+    with user <- User.new(email, name, username) do
       IO.puts("User created.")
 
       user = %{user | id: UUID.uuid1()}

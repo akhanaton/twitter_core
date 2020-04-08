@@ -5,7 +5,7 @@ defmodule TweetLogTest do
   alias Twitter.Core.{Tweet, User}
 
   setup do
-    {:ok, user} = User.new("alice@gmail.com", "Alice B.", "alice")
+    user = User.new("alice@gmail.com", "Alice B.", "alice")
     user = %{user | id: UUID.uuid1()}
     tweet_list = @subject.new(user)
 
@@ -141,7 +141,7 @@ defmodule TweetLogTest do
     test "update a tweet after comment", state do
       tweet_list = state[:tweet_list]
 
-      {:ok, user} = User.new("bob@gmail.com", "Bob C.", "bob")
+      user = User.new("bob@gmail.com", "Bob C.", "bob")
       user = %{user | id: UUID.uuid1()}
 
       tweet1 = Tweet.new("My first tweet")
@@ -160,7 +160,7 @@ defmodule TweetLogTest do
     test "returns an error when tweet to update not found", state do
       tweet_list = state[:tweet_list]
 
-      {:ok, user} = User.new("bob@gmail.com", "Bob C.", "bob")
+      user = User.new("bob@gmail.com", "Bob C.", "bob")
       user = %{user | id: UUID.uuid1()}
 
       tweet1 = Tweet.new("My first tweet")

@@ -7,7 +7,7 @@ defmodule TweetTest do
   setup do
     tweet = @subject.new("Hello world!")
 
-    {:ok, user} =
+    user =
       User.new(
         "jdoe@gmail.com",
         "John Doe",
@@ -53,7 +53,7 @@ defmodule TweetTest do
     test "returns an error if user has no id or id is nil", state do
       tweet = state[:tweet]
 
-      {:ok, user} =
+      user =
         User.new(
           "jdoe@gmail.com",
           "John Doe",

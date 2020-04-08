@@ -6,7 +6,7 @@ defmodule TimelineTest do
 
   setup do
     timeline = @subject.new()
-    {:ok, user} = User.new("alice@fakemail.fake", "Alice B.", "alice")
+    user = User.new("alice@fakemail.fake", "Alice B.", "alice")
     user = %{user | id: UUID.uuid1()}
     tweet = Tweet.new("Hello world!")
     tweet = %{tweet | id: UUID.uuid1(), user_id: user.id}
@@ -59,7 +59,7 @@ defmodule TimelineTest do
 
       timeline = @subject.add(timeline, tweet)
 
-      {:ok, second_user} = User.new("bob@fakemail.fake", "Bob C.", "bob")
+      second_user = User.new("bob@fakemail.fake", "Bob C.", "bob")
       second_user = %{second_user | id: UUID.uuid1()}
 
       second_tweet = Tweet.new("My second tweet")

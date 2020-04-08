@@ -10,9 +10,9 @@ alias Twitter.Core.{
   TweetLogSupervisor
 }
 
-{:ok, user1} = User.new("alice@fakemail.fake", "Alice Bryan", "alice")
-{:ok, user2} = User.new("bob@fakemail.fake", "Bob Cummins", "bob")
-{:ok, user3} = User.new("freddy@fakemail.fake", "Fred Grange", "freddy")
+user1 = User.new("alice@fakemail.fake", "Alice Bryan", "alice")
+user2 = User.new("bob@fakemail.fake", "Bob Cummins", "bob")
+user3 = User.new("freddy@fakemail.fake", "Fred Grange", "freddy")
 account_pid1 = AccountsSupervisor.account_process(user1)
 account_pid2 = AccountsSupervisor.account_process(user2)
 account_pid3 = AccountsSupervisor.account_process(user3)

@@ -6,7 +6,7 @@ defmodule AccountTest do
   alias Twitter.Core.{Timeline, Tweet, User}
 
   setup do
-    {:ok, user} = User.new("alice@fakemail.fake", "Alice Bryan", "alice")
+    user = User.new("alice@fakemail.fake", "Alice Bryan", "alice")
     user = %{user | id: UUID.uuid1()}
     tweet1 = Tweet.new("First tweet")
     tweet2 = Tweet.new("Second tweet")
@@ -27,7 +27,7 @@ defmodule AccountTest do
   end
 
   test "add user id to following", %{account: account} do
-    {:ok, user} = User.new("bob@fakemail.fake", "Bob C.", "bob")
+    user = User.new("bob@fakemail.fake", "Bob C.", "bob")
     user = %{user | id: UUID.uuid1()}
 
     assert {:reply, actual, _, _} =

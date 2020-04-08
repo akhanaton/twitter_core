@@ -1,6 +1,4 @@
 defmodule Twitter.Core.User do
-  alias __MODULE__
-
   @moduledoc ~S"""
     Create a `user` with the ability for other users to follow/unfollow
   """
@@ -8,6 +6,7 @@ defmodule Twitter.Core.User do
   @enforce_keys [:email, :name, :username]
 
   defstruct [
+    :display_name,
     :email,
     :followers,
     :following,
@@ -35,17 +34,16 @@ defmodule Twitter.Core.User do
   """
 
   def new(email, name, username),
-    do:
-      {:ok,
-       %User{
-         email: email,
-         followers: MapSet.new(),
-         following: MapSet.new(),
-         name: name,
-         username: username
-       }}
+    do: %__MODULE__{
+      display_name: nil,
+      email: email,
+      followers: MapSet.new(),
+      following: MapSet.new(),
+      name: name,
+      username: username
+    }
 
-  def toggle_follower(%User{followers: followers} = user, %User{id: id}) do
+  def toggle_follower(%__MODULE__{followers: followers} = user, %__MODULE__{id: id}) do
     case Enum.find(followers, &(&1 == id)) do
       nil ->
         new_followers = MapSet.put(followers, id)
@@ -57,7 +55,7 @@ defmodule Twitter.Core.User do
     end
   end
 
-  def toggle_following(%User{following: following} = user, %User{id: id}) do
+  def toggle_following(%__MODULE__{following: following} = user, %__MODULE__{id: id}) do
     case Enum.find(following, &(&1 == id)) do
       nil ->
         new_following = MapSet.put(following, id)

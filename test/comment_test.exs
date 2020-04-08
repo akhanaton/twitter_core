@@ -13,7 +13,7 @@ defmodule CommentTest do
     test "like/unlike a comment", state do
       comment = state[:comment]
 
-      {:ok, user} = Twitter.Core.User.new("alice@gmail.com", "Alice B", "alice")
+      user = Twitter.Core.User.new("alice@gmail.com", "Alice B", "alice")
       user = %{user | id: comment.user_id}
 
       {:ok, comment} = @subject.toggle_like(comment, user)
