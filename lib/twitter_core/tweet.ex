@@ -1,5 +1,4 @@
 defmodule Twitter.Core.Tweet do
-  alias __MODULE__
   alias Twitter.Core.{Comment, User}
 
   @enforce_keys [:content, :is_visible?]
@@ -15,7 +14,7 @@ defmodule Twitter.Core.Tweet do
   ]
 
   def add_comment(
-        %Tweet{comments: comments} = tweet,
+        %__MODULE__{comments: comments} = tweet,
         %User{id: user_id},
         text
       ) do
@@ -27,11 +26,11 @@ defmodule Twitter.Core.Tweet do
         id = UUID.uuid1()
         comment = Comment.new(id, user_id, text)
         new_comments = Map.put(comments, id, comment)
-        {:ok, %Tweet{tweet | comments: new_comments}}
+        {:ok, %__MODULE__{tweet | comments: new_comments}}
     end
   end
 
-  def delete_comment(%Tweet{comments: comments} = tweet, %Comment{id: comment_id}) do
+  def delete_comment(%__MODULE__{comments: comments} = tweet, %Comment{id: comment_id}) do
     case Map.fetch(comments, comment_id) do
       {:ok, comment} ->
         deleted_comment = %{comment | is_visible?: false}
@@ -44,7 +43,7 @@ defmodule Twitter.Core.Tweet do
   end
 
   def new(content),
-    do: %Tweet{
+    do: %__MODULE__{
       created: Timex.now(),
       comments: %{},
       content: content,
@@ -54,7 +53,7 @@ defmodule Twitter.Core.Tweet do
 
   def new(), do: {:error, :no_content}
 
-  def toggle_like(%Tweet{likes: likes} = tweet, %User{id: user_id}) do
+  def toggle_like(%__MODULE__{likes: likes} = tweet, %User{id: user_id}) do
     case Enum.find(likes, &(&1 == user_id)) do
       nil ->
         likes = MapSet.put(likes, user_id)
@@ -67,7 +66,7 @@ defmodule Twitter.Core.Tweet do
   end
 
   def update_comment(
-        %Tweet{comments: comments} = tweet,
+        %__MODULE__{comments: comments} = tweet,
         %Comment{id: comment_id} = new_comment
       ) do
     case Map.fetch(comments, comment_id) do

@@ -35,7 +35,7 @@ defmodule Twitter.Core.User do
 
   def new(email, name, username),
     do: %__MODULE__{
-      display_name: nil,
+      display_name: "@#{username}",
       email: email,
       followers: MapSet.new(),
       following: MapSet.new(),

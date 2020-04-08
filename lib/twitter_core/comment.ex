@@ -1,5 +1,4 @@
 defmodule Twitter.Core.Comment do
-  alias __MODULE__
   alias Twitter.Core.User
 
   @enforce_keys [:created, :id, :is_visible?, :text, :user_id]
@@ -7,7 +6,7 @@ defmodule Twitter.Core.Comment do
   defstruct [:created, :id, :is_visible?, :likes, :text, :user_id]
 
   def new(id, user_id, text),
-    do: %Comment{
+    do: %__MODULE__{
       created: Timex.now(),
       id: id,
       is_visible?: true,
@@ -16,7 +15,7 @@ defmodule Twitter.Core.Comment do
       user_id: user_id
     }
 
-  def toggle_like(%Comment{likes: likes} = comment, %User{id: user_id}) do
+  def toggle_like(%__MODULE__{likes: likes} = comment, %User{id: user_id}) do
     case Enum.find(likes, &(&1 == user_id)) do
       nil ->
         likes = MapSet.put(likes, user_id)
