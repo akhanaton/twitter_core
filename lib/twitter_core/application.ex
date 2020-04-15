@@ -7,6 +7,7 @@ defmodule Twitter.Core.Application do
 
   def start(_type, _args) do
     children = [
+      Twitter.Core.Repo,
       Twitter.Core.ProcessRegistry,
       %{
         id: Phoenix.PubSub.PG2,
