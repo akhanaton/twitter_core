@@ -1,4 +1,4 @@
-defmodule Twitter.Core.Account do
+defmodule Twitter.Core.AccountServer do
   alias Twitter.Core.{
     LiveUpdates,
     ProcessRegistry,

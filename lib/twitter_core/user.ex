@@ -12,7 +12,8 @@ defmodule Twitter.Core.User do
     :following,
     :id,
     :name,
-    :username
+    :username,
+    :password
   ]
 
   @doc """

@@ -1,7 +1,7 @@
 defmodule AccountTest do
   use ExUnit.Case
 
-  @subject Twitter.Core.Account
+  @subject Twitter.Core.AccountServer
 
   alias Twitter.Core.{Timeline, Tweet, User}
 
