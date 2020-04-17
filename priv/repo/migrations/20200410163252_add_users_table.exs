@@ -3,10 +3,10 @@ defmodule Twitter.Core.Repo.Migrations.AddUsersTable do
 
   def change do
     create table(:users) do
-      add(:email, :string, size: 40)
-      add(:name, :string, size: 60)
-      add(:username, :citext)
-      add(:password_hash, :string)
+      add(:email, :string, size: 40, null: false)
+      add(:name, :string, size: 60, null: false)
+      add(:username, :citext, null: false)
+      add(:password_hash, :string, null: false)
 
       timestamps()
     end
