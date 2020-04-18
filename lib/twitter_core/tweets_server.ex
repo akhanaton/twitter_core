@@ -1,7 +1,7 @@
 defmodule Twitter.Core.TweetServer do
   use GenServer, restart: :permanent
 
-  alias Twitter.Core.{Comment, ProcessRegistry, Tweet, TweetLog, User}
+  alias Twitter.Core.{Comment, Database, ProcessRegistry, Tweet, TweetLog, User}
 
   # Interface functions
 
@@ -14,6 +14,7 @@ defmodule Twitter.Core.TweetServer do
     GenServer.call(via_tuple(username), {:add_comment, {tweet, comment}})
   end
 
+  @spec all_tweets(Twitter.Core.User.t()) :: any
   def all_tweets(%User{username: username}) do
     GenServer.call(via_tuple(username), :all_tweets)
   end
@@ -196,14 +197,11 @@ defmodule Twitter.Core.TweetServer do
   end
 
   defp log_owner(user_id) do
-    [{_user_id, log_owner}] = :ets.lookup(:user_state, user_id)
-    log_owner
+    Database.get_username_by_id(user_id)
   end
 
   defp user_details(user_id) do
-    log_owner = log_owner(user_id)
-    [{_key, user_details}] = :ets.lookup(:user_state, log_owner)
-    user_details
+    Database.get_user_details_by_id(user_id)
   end
 
   defp reply_success(%{} = state, reply) do
@@ -216,7 +214,7 @@ defmodule Twitter.Core.TweetServer do
     [{my_pid, _}] =
       Registry.lookup(
         ProcessRegistry,
-        {Twitter.Core.Account, log_owner}
+        {Twitter.Core.AccountServer, log_owner}
       )
 
     send(my_pid, :update_timeline)

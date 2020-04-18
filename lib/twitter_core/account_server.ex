@@ -1,5 +1,6 @@
 defmodule Twitter.Core.AccountServer do
   alias Twitter.Core.{
+    Database,
     LiveUpdates,
     ProcessRegistry,
     Timeline,
@@ -15,7 +16,7 @@ defmodule Twitter.Core.AccountServer do
 
   # Interface functions
 
-  def start_link(%User{username: username} = user) when is_binary(username) do
+  def start_link(%User{username: username} = user) do
     GenServer.start_link(__MODULE__, user, name: via_tuple(username))
   end
 
@@ -47,9 +48,7 @@ defmodule Twitter.Core.AccountServer do
               user_details
 
             false ->
-              [{_user_id, username}] = :ets.lookup(:user_state, tweet.user_id)
-              [{_username, user_details}] = :ets.lookup(:user_state, username)
-              user_details
+              Database.get_user_details_by_id(tweet.user_id)
           end
 
         GenServer.call(TweetServer.via_tuple(user.username), {:get_tweet, tweet_id})
@@ -64,7 +63,8 @@ defmodule Twitter.Core.AccountServer do
         _caller,
         %{timeline: _timeline, user: user_details} = state
       ) do
-    with new_user = %User{} <- User.toggle_follower(user_details, follower),
+    with :ok <- Database.toggle_follower(user_details, follower),
+         new_user = %User{} <- User.toggle_follower(user_details, follower),
          %User{} <-
            GenServer.call(
              via_tuple(follower.username),
@@ -114,13 +114,8 @@ defmodule Twitter.Core.AccountServer do
   end
 
   def handle_info({:set_state, %User{username: username} = user}, _state) do
-    user_details =
-      case :ets.lookup(:user_state, username) do
-        [] -> create_user(user)
-        [{_key, state}] -> state
-      end
-
-    tweets = my_tweets(username) ++ following_tweets(user_details)
+    TweetLogSupervisor.log_process(user)
+    tweets = my_tweets(username) ++ following_tweets(user)
 
     timeline = Timeline.new()
 
@@ -128,10 +123,9 @@ defmodule Twitter.Core.AccountServer do
       GenServer.cast(via_tuple(username), {:add_to_timeline, tweet})
     end)
 
-    state = %{user: user_details, timeline: timeline}
-    :ets.insert(:user_state, {user_details.username, user_details})
-    :ets.insert(:user_state, {user_details.id, user_details.username})
-    IO.puts("started account server for #{user_details.username}")
+    state = %{user: user, timeline: timeline}
+
+    IO.puts("started account server for #{user.username}")
     {:noreply, state, @timeout}
   end
 
@@ -164,24 +158,10 @@ defmodule Twitter.Core.AccountServer do
   end
 
   # Private functions
-  defp create_user(%User{
-         email: email,
-         name: name,
-         username: username
-       }) do
-    with user <- User.new(email, name, username) do
-      IO.puts("User created.")
-
-      user = %{user | id: UUID.uuid1()}
-      TweetLogSupervisor.log_process(user)
-
-      user
-    end
-  end
 
   defp following_tweets(%User{following: following}) do
     Enum.reduce(following, [], fn followed_user, acc ->
-      [{_user_id, followed_username}] = :ets.lookup(:user_state, followed_user)
+      followed_username = Database.get_username_by_id(followed_user)
 
       GenServer.call(TweetServer.via_tuple(followed_username), :all_tweets) ++ acc
     end)
@@ -191,15 +171,13 @@ defmodule Twitter.Core.AccountServer do
     GenServer.call(TweetServer.via_tuple(username), :all_tweets)
   end
 
-  defp reply_success(%{user: user_details, timeline: _timeline} = state, reply) do
-    :ets.insert(:user_state, {user_details.username, user_details})
-    :ets.insert(:user_state, {user_details.id, user_details.username})
+  defp reply_success(state, reply) do
     {:reply, reply, state, @timeout}
   end
 
   defp update_followers_timelines(user, tweet) do
     Enum.each(user.followers, fn follower ->
-      [{_user_id, follower_username}] = :ets.lookup(:user_state, follower)
+      follower_username = Database.get_username_by_id(follower)
       GenServer.cast(via_tuple(follower_username), {:followed_tweets_to_timeline, tweet, user})
     end)
   end

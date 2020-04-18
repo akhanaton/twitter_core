@@ -1,5 +1,5 @@
 defmodule Twitter.Core.AccountsSupervisor do
-  alias Twitter.Core.{Account, User}
+  alias Twitter.Core.{AccountServer, User}
 
   def start_link do
     IO.puts("starting accounts supervisor...")
@@ -26,6 +26,6 @@ defmodule Twitter.Core.AccountsSupervisor do
   end
 
   defp start_child(user) do
-    DynamicSupervisor.start_child(__MODULE__, {Account, user})
+    DynamicSupervisor.start_child(__MODULE__, {AccountServer, user})
   end
 end

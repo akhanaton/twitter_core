@@ -10,6 +10,7 @@ alias Twitter.Core.{
   Content.LikedComment,
   Content.LikedTweet,
   Content.Tweet,
+  Database,
   Repo,
   User,
   Timeline,

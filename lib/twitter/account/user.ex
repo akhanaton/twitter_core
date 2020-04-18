@@ -6,7 +6,6 @@ defmodule Twitter.Core.Account.User do
   alias Twitter.Core.Content.{LikedComment, LikedTweet, Tweet}
 
   schema "users" do
-    field(:display_name, :string, virtual: true)
     field(:email, :string)
     field(:name, :string)
     field(:username, :string)
@@ -25,7 +24,7 @@ defmodule Twitter.Core.Account.User do
 
   def changeset(%__MODULE__{} = user, attrs \\ %{}) do
     user
-    |> cast(attrs, [:display_name, :email, :name, :username, :password])
+    |> cast(attrs, [:email, :name, :username, :password])
     |> validate_required([:email, :name, :username, :password])
     |> validate_format(:email, ~r/@/, message: "is invalid")
     |> validate_length(:password, min: 6, max: 100)
