@@ -30,15 +30,18 @@ defmodule Twitter.Core.AccountServer do
 
   # Server functions
 
+  @impl GenServer
   def init(user) do
     send(self(), {:set_state, user})
     {:ok, %{}, @timeout}
   end
 
+  @impl GenServer
   def handle_call(:user, _caller, %{user: user_details, timeline: _timeline} = state) do
     reply_success(state, user_details)
   end
 
+  @impl GenServer
   def handle_call(:show_tweets, _caller, %{user: user_details, timeline: timeline} = state) do
     result =
       Stream.map(timeline.tweets, fn {tweet_id, tweet} ->
@@ -58,6 +61,7 @@ defmodule Twitter.Core.AccountServer do
     reply_success(state, result)
   end
 
+  @impl GenServer
   def handle_call(
         {:toggle_follower, follower},
         _caller,
@@ -77,6 +81,7 @@ defmodule Twitter.Core.AccountServer do
     end
   end
 
+  @impl GenServer
   def handle_call(
         {:toggle_following, %User{} = followed_user},
         _caller,
@@ -90,6 +95,7 @@ defmodule Twitter.Core.AccountServer do
     end
   end
 
+  @impl GenServer
   def handle_cast(
         {:add_to_timeline, tweet},
         %{user: user, timeline: timeline}
@@ -99,6 +105,7 @@ defmodule Twitter.Core.AccountServer do
     {:noreply, state}
   end
 
+  @impl GenServer
   def handle_cast(
         {:followed_tweets_to_timeline, %Tweet{} = tweet, %User{}},
         %{
@@ -113,6 +120,7 @@ defmodule Twitter.Core.AccountServer do
     {:noreply, new_state}
   end
 
+  @impl GenServer
   def handle_info({:set_state, %User{username: username} = user}, _state) do
     TweetLogSupervisor.log_process(user)
     tweets = my_tweets(username) ++ following_tweets(user)
@@ -129,9 +137,11 @@ defmodule Twitter.Core.AccountServer do
     {:noreply, state, @timeout}
   end
 
+  @impl GenServer
   def handle_info(:timeout, state),
     do: {:stop, {:shutdown, :timeout}, state}
 
+  @impl GenServer
   def handle_info(
         :update_timeline,
         %{
@@ -147,10 +157,12 @@ defmodule Twitter.Core.AccountServer do
     {:noreply, new_state}
   end
 
+  @impl GenServer
   def terminate({:shutdown, :timeout}, _state) do
     :ok
   end
 
+  @impl GenServer
   def terminate(_reason, _state), do: :ok
 
   def via_tuple(username) do
