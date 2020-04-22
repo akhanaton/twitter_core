@@ -24,7 +24,7 @@ defmodule Twitter.Core.Database do
     end
   end
 
-  def get_all_tweets(%{id: user_id}) do
+  def get_all_tweets(%{id: user_id} = _user) do
     case Content.get_all_tweets(user_id) do
       [] ->
         []
@@ -34,15 +34,15 @@ defmodule Twitter.Core.Database do
     end
   end
 
-  def get_tweet(id) do
-    case Content.get_tweet(id) do
+  def get_tweet(tweet_id) do
+    case Content.get_tweet(tweet_id) do
       %SchemaTweet{} = tweet -> transform_tweet(tweet)
       nil -> {:error, :tweet_not_found}
     end
   end
 
-  def get_tweet_with_comments(id) do
-    case Content.get_tweet_with_comments(id) do
+  def get_tweet_with_comments(tweet_id) do
+    case Content.get_tweet_with_comments(tweet_id) do
       %SchemaTweet{} = tweet -> transform_tweet(tweet)
       nil -> {:error, :tweet_not_found}
     end
@@ -69,9 +69,7 @@ defmodule Twitter.Core.Database do
     end
   end
 
-  @spec get_user_by_credentials(map) ::
-          {:error, :invalid_user_credentials} | Twitter.Core.User.t()
-  def get_user_by_credentials(%{"email" => email, "password" => password} = _user) do
+  def get_user_by_credentials(email, password) do
     case Account.get_user_by_credentials(%{email: email, password: password}) do
       %SchemaUser{} = user -> transform_user(user)
       :error -> {:error, :invalid_user_credentials}
@@ -85,12 +83,12 @@ defmodule Twitter.Core.Database do
     end
   end
 
-  def like_comment(%{comment_id: _comment_id, user_id: _id} = comment_details) do
-    Content.save_liked_comment(comment_details) |> transform_tweet()
+  def like_comment(%{comment_id: _comment_id, user_id: _id} = comment) do
+    Content.save_liked_comment(comment) |> transform_tweet()
   end
 
-  def like_tweet(%{tweet_id: _tweet_id, user_id: _id} = tweet_details) do
-    Content.save_liked_tweet(tweet_details)
+  def like_tweet(%{tweet_id: _tweet_id, user_id: _id} = tweet) do
+    Content.save_liked_tweet(tweet)
     |> transform_tweet()
   end
 
@@ -104,7 +102,7 @@ defmodule Twitter.Core.Database do
     end
   end
 
-  def save_comment(%{id: id} = _tweet, %{id: owner_id, text: text}) do
+  def save_comment(%{id: id} = _tweet, %{id: owner_id, text: text} = _comment) do
     case Content.save_comment(%{text: text, tweet_id: id, user_id: owner_id}) do
       %SchemaTweet{} = tweet ->
         {:ok, transform_tweet(tweet)}
@@ -145,12 +143,12 @@ defmodule Twitter.Core.Database do
     }
   end
 
-  def unlike_comment(%{comment_id: _comment_id, user_id: _id} = comment_details) do
-    Content.delete_liked_comment(comment_details)
+  def unlike_comment(%{comment_id: _comment_id, user_id: _id} = comment) do
+    Content.delete_liked_comment(comment)
   end
 
-  def unlike_tweet(%{tweet_id: _tweet_id, user_id: _id} = tweet_details) do
-    Content.delete_liked_tweet(tweet_details)
+  def unlike_tweet(%{tweet_id: _tweet_id, user_id: _id} = tweet) do
+    Content.delete_liked_tweet(tweet)
   end
 
   defp add_comment_to_map(comment, comments_map) do

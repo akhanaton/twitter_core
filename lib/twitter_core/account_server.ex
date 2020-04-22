@@ -119,6 +119,7 @@ defmodule Twitter.Core.AccountServer do
 
   @impl GenServer
   def handle_info({:set_state, %User{username: username} = user}, _state) do
+    user = Database.get_user_details_by_id(user.id)
     tweets = my_tweets(user) ++ following_tweets(user)
 
     timeline = Timeline.new()
@@ -176,7 +177,7 @@ defmodule Twitter.Core.AccountServer do
     end
   end
 
-  defp following_tweets(%User{following: following}) do
+  defp following_tweets(%User{following: following} = _user) do
     Enum.reduce(following, [], fn followed_user_id, acc ->
       follower_user = Database.get_user_details_by_id(followed_user_id)
       TweetsAPI.all_tweets(follower_user) ++ acc

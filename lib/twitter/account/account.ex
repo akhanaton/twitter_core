@@ -1,12 +1,20 @@
 defmodule Twitter.Core.Account do
   import Ecto.Query
   alias Twitter.Core.{Account.User, Repo}
+  alias Twitter.Core.User, as: CoreUser
+
+  def build_user(user_details \\ %{}) do
+    %User{}
+    |> User.changeset(user_details)
+  end
 
   def create_user(user_details) do
-    Map.from_struct(user_details)
-    |> Map.put(:display_name, "@#{user_details.username}")
-    |> build_user
-    |> Repo.insert()
+    user_changeset = build_user(user_details)
+
+    case Repo.insert(user_changeset) do
+      {:ok, user} -> transform_user(user)
+      {:error, changeset} -> {:error, changeset}
+    end
   end
 
   def delete_follower(followed_id, follower_id) do
@@ -41,13 +49,15 @@ defmodule Twitter.Core.Account do
   end
 
   # Private
+
   defp get_user_by_email(email) do
     Repo.get_by(User, email: email)
     |> Repo.preload([:followers, :following])
   end
 
-  defp build_user(user_details) do
-    %User{}
-    |> User.changeset(user_details)
+  defp transform_user(user) do
+    new_user = CoreUser.new(user.email, user.name, user.username)
+    new_user = %{new_user | id: user.id}
+    {:ok, new_user}
   end
 end

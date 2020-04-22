@@ -50,7 +50,9 @@ defmodule Twitter.Core.Content do
   end
 
   def get_tweet(tweet_id) do
-    Repo.get(Tweet, tweet_id)
+    Tweet
+    |> where(is_visible: true, id: ^tweet_id)
+    |> Repo.one()
   end
 
   def get_comment_likes(comment_id) do
@@ -76,7 +78,7 @@ defmodule Twitter.Core.Content do
   end
 
   def get_tweet_with_comments(tweet_id) do
-    get_tweet(tweet_id) |> with_comments()
+    get_tweet(tweet_id) |> with_comment_likes() |> with_tweet_likes()
   end
 
   def save_comment(%{text: text, tweet_id: tweet_id, user_id: user_id}) do
@@ -105,7 +107,7 @@ defmodule Twitter.Core.Content do
     |> LikedComment.changeset(attrs)
     |> Repo.insert()
 
-    tweet_with_comment_likes(tweet_id) |> Repo.one()
+    get_tweet_with_comments(tweet_id)
   end
 
   def save_liked_tweet(%{user_id: _user_id, tweet_id: tweet_id} = attrs) do
@@ -124,13 +126,8 @@ defmodule Twitter.Core.Content do
     Repo.preload(tweet, [:liked_tweets])
   end
 
-  defp tweet_with_comment_likes(tweet_id) do
-    from(t in Tweet,
-      left_join: c in assoc(t, :comments),
-      where: t.is_visible == true,
-      where: c.is_visible == true,
-      where: t.id == ^tweet_id,
-      preload: [comments: :liked_comments]
-    )
+  def with_comment_likes(tweet) do
+    query = from(c in Comment, where: c.is_visible == true)
+    Repo.preload(tweet, comments: {query, [:liked_comments]})
   end
 end
