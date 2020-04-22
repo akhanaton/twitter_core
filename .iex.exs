@@ -6,6 +6,7 @@ alias Twitter.Core.{
   Account.User,
   Account.Follower,
   Comment,
+  Content,
   Content.Comment,
   Content.LikedComment,
   Content.LikedTweet,
@@ -16,6 +17,6 @@ alias Twitter.Core.{
   Timeline,
   Tweet,
   TweetLog,
-  TweetServer,
+  TweetsAPI,
   TweetLogSupervisor
 }

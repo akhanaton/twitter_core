@@ -1,7 +1,7 @@
 defmodule Twitter.Core.Tweet do
   alias Twitter.Core.{Comment, User}
 
-  @enforce_keys [:content, :is_visible?]
+  @enforce_keys [:content]
 
   defstruct [
     :created,
@@ -24,7 +24,7 @@ defmodule Twitter.Core.Tweet do
 
       false ->
         id = UUID.uuid1()
-        comment = Comment.new(id, user_id, text)
+        comment = Comment.new(user_id, text)
         new_comments = Map.put(comments, id, comment)
         {:ok, %__MODULE__{tweet | comments: new_comments}}
     end
@@ -44,10 +44,8 @@ defmodule Twitter.Core.Tweet do
 
   def new(content),
     do: %__MODULE__{
-      created: Timex.now(),
       comments: %{},
       content: content,
-      is_visible?: true,
       likes: MapSet.new()
     }
 

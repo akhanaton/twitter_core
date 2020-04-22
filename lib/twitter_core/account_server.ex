@@ -5,8 +5,7 @@ defmodule Twitter.Core.AccountServer do
     ProcessRegistry,
     Timeline,
     Tweet,
-    TweetLogSupervisor,
-    TweetServer,
+    TweetsAPI,
     User
   }
 
@@ -24,8 +23,8 @@ defmodule Twitter.Core.AccountServer do
     GenServer.call(via_tuple(username), :show_tweets)
   end
 
-  def toggle_follower(%User{username: username}, %User{} = follower) do
-    GenServer.call(via_tuple(username), {:toggle_follower, follower})
+  def toggle_follower(%User{username: username} = _I, %User{} = want_to_follow) do
+    GenServer.call(via_tuple(username), {:toggle_follower, want_to_follow})
   end
 
   # Server functions
@@ -42,19 +41,10 @@ defmodule Twitter.Core.AccountServer do
   end
 
   @impl GenServer
-  def handle_call(:show_tweets, _caller, %{user: user_details, timeline: timeline} = state) do
+  def handle_call(:show_tweets, _caller, %{timeline: timeline} = state) do
     result =
-      Stream.map(timeline.tweets, fn {tweet_id, tweet} ->
-        user =
-          case tweet.user_id == user_details.id do
-            true ->
-              user_details
-
-            false ->
-              Database.get_user_details_by_id(tweet.user_id)
-          end
-
-        GenServer.call(TweetServer.via_tuple(user.username), {:get_tweet, tweet_id})
+      Stream.map(timeline.tweets, fn {tweet_id, _tweet} ->
+        TweetsAPI.get_tweet(tweet_id)
       end)
       |> Enum.sort_by(& &1.created, &Timex.after?/2)
 
@@ -63,35 +53,42 @@ defmodule Twitter.Core.AccountServer do
 
   @impl GenServer
   def handle_call(
-        {:toggle_follower, follower},
+        {:toggle_follower, want_to_follow},
         _caller,
-        %{timeline: _timeline, user: user_details} = state
+        %{timeline: _timeline, user: user} = state
       ) do
-    with :ok <- Database.toggle_follower(user_details, follower),
-         new_user = %User{} <- User.toggle_follower(user_details, follower),
-         %User{} <-
-           GenServer.call(
-             via_tuple(follower.username),
-             {:toggle_following, user_details}
-           ) do
+    want_to_follow = Database.get_user_details_by_id(want_to_follow.id)
+
+    with :ok <- Database.toggle_follower(user, want_to_follow),
+         new_user = %User{} <- User.toggle_following(user, want_to_follow) do
+      case get_active_user_pid(want_to_follow.username) do
+        :not_online ->
+          nil
+
+        _pid ->
+          GenServer.cast(
+            via_tuple(want_to_follow.username),
+            {:toggle_following, user}
+          )
+      end
+
       new_state = %{state | user: new_user}
       reply_success(new_state, new_user)
     else
-      _ -> reply_success(state, user_details)
+      _ -> reply_success(state, user)
     end
   end
 
   @impl GenServer
-  def handle_call(
-        {:toggle_following, %User{} = followed_user},
-        _caller,
+  def handle_cast(
+        {:toggle_following, %User{} = followed_by},
         %{timeline: _timeline, user: user_details} = state
       ) do
-    with new_user = %User{} <- User.toggle_following(user_details, followed_user) do
-      %{state | user: new_user}
-      |> reply_success(new_user)
+    with new_user = %User{} <- User.toggle_follower(user_details, followed_by) do
+      new_state = %{state | user: new_user}
+      {:noreply, new_state}
     else
-      _ -> reply_success(state, state)
+      _ -> {:noreply, state}
     end
   end
 
@@ -122,8 +119,7 @@ defmodule Twitter.Core.AccountServer do
 
   @impl GenServer
   def handle_info({:set_state, %User{username: username} = user}, _state) do
-    TweetLogSupervisor.log_process(user)
-    tweets = my_tweets(username) ++ following_tweets(user)
+    tweets = my_tweets(user) ++ following_tweets(user)
 
     timeline = Timeline.new()
 
@@ -143,13 +139,12 @@ defmodule Twitter.Core.AccountServer do
 
   @impl GenServer
   def handle_info(
-        :update_timeline,
+        {:update_my_timeline, new_tweet},
         %{
           user: %User{username: username} = user,
           timeline: timeline
         } = state
       ) do
-    new_tweet = GenServer.call(TweetServer.via_tuple(username), :get_last_tweet)
     new_timeline = Timeline.add(timeline, new_tweet)
     new_state = %{state | timeline: new_timeline}
     LiveUpdates.notify_live_view(username, {__MODULE__, [:timeline_updated], []})
@@ -171,16 +166,25 @@ defmodule Twitter.Core.AccountServer do
 
   # Private functions
 
-  defp following_tweets(%User{following: following}) do
-    Enum.reduce(following, [], fn followed_user, acc ->
-      followed_username = Database.get_username_by_id(followed_user)
+  defp get_active_user_pid(username) do
+    case Registry.lookup(
+           ProcessRegistry,
+           {__MODULE__, username}
+         ) do
+      [{my_pid, _}] -> my_pid
+      _ -> :not_online
+    end
+  end
 
-      GenServer.call(TweetServer.via_tuple(followed_username), :all_tweets) ++ acc
+  defp following_tweets(%User{following: following}) do
+    Enum.reduce(following, [], fn followed_user_id, acc ->
+      follower_user = Database.get_user_details_by_id(followed_user_id)
+      TweetsAPI.all_tweets(follower_user) ++ acc
     end)
   end
 
-  defp my_tweets(username) do
-    GenServer.call(TweetServer.via_tuple(username), :all_tweets)
+  defp my_tweets(user) do
+    TweetsAPI.all_tweets(user)
   end
 
   defp reply_success(state, reply) do

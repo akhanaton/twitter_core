@@ -13,7 +13,6 @@ defmodule Twitter.Core.Application do
         id: Phoenix.PubSub.PG2,
         start: {Phoenix.PubSub.PG2, :start_link, [:twitter, []]}
       },
-      Twitter.Core.TweetLogSupervisor,
       Twitter.Core.AccountsSupervisor
       # Starts a worker by calling: Twitter.Core.Worker.start_link(arg)
       # {Twitter.Core.Worker, arg}

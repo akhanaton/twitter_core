@@ -11,5 +11,6 @@ defmodule Twitter.Core.Repo.Migrations.AddLikedTweetsTable do
 
     create(unique_index(:liked_tweets, [:user_id, :tweet_id]))
     create(index(:liked_tweets, [:user_id]))
+    create(index(:liked_tweets, [:tweet_id]))
   end
 end

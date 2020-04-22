@@ -1,14 +1,12 @@
 defmodule Twitter.Core.Comment do
   alias Twitter.Core.User
 
-  @enforce_keys [:created, :id, :is_visible?, :text, :user_id]
+  @enforce_keys [:is_visible?, :text, :user_id]
 
-  defstruct [:created, :id, :is_visible?, :likes, :text, :user_id]
+  defstruct [:created, :id, :is_visible?, :likes, :text, :tweet_id, :user_id]
 
-  def new(id, user_id, text),
+  def new(user_id, text),
     do: %__MODULE__{
-      created: Timex.now(),
-      id: id,
       is_visible?: true,
       likes: MapSet.new(),
       text: text,

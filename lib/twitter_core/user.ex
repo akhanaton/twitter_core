@@ -44,7 +44,10 @@ defmodule Twitter.Core.User do
       username: username
     }
 
-  def toggle_follower(%__MODULE__{followers: followers} = user, %__MODULE__{id: id}) do
+  def toggle_follower(
+        %__MODULE__{followers: followers} = user,
+        %__MODULE__{id: id} = _follower
+      ) do
     case Enum.find(followers, &(&1 == id)) do
       nil ->
         new_followers = MapSet.put(followers, id)
@@ -56,7 +59,10 @@ defmodule Twitter.Core.User do
     end
   end
 
-  def toggle_following(%__MODULE__{following: following} = user, %__MODULE__{id: id}) do
+  def toggle_following(
+        %__MODULE__{following: following} = user,
+        %__MODULE__{id: id} = _followed
+      ) do
     case Enum.find(following, &(&1 == id)) do
       nil ->
         new_following = MapSet.put(following, id)
