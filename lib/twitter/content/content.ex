@@ -55,6 +55,10 @@ defmodule Twitter.Core.Content do
     |> Repo.one()
   end
 
+  def get_tweet_with_user(tweet_id) do
+    get_tweet(tweet_id) |> with_user()
+  end
+
   def get_comment_likes(comment_id) do
     likes =
       LikedComment
@@ -124,6 +128,10 @@ defmodule Twitter.Core.Content do
 
   defp with_tweet_likes(tweet) do
     Repo.preload(tweet, [:liked_tweets])
+  end
+
+  defp with_user(tweet) do
+    Repo.preload(tweet, [:user])
   end
 
   def with_comment_likes(tweet) do

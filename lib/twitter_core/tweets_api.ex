@@ -46,6 +46,10 @@ defmodule Twitter.Core.TweetsAPI do
     Database.get_tweet_with_comments(tweet_id)
   end
 
+  def get_tweet_with_user(tweet_id) do
+    Database.get_tweet_with_user(tweet_id)
+  end
+
   def toggle_like_comment(
         %Comment{id: comment_id, tweet_id: tweet_id} = _comment,
         %User{id: user_id} = _commenter

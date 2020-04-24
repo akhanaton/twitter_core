@@ -44,7 +44,7 @@ defmodule Twitter.Core.AccountServer do
   def handle_call(:show_tweets, _caller, %{timeline: timeline} = state) do
     result =
       Stream.map(timeline.tweets, fn {tweet_id, _tweet} ->
-        TweetsAPI.get_tweet(tweet_id)
+        TweetsAPI.get_tweet_with_user(tweet_id)
       end)
       |> Enum.sort_by(& &1.created, &Timex.after?/2)
 

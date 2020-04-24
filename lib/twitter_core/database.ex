@@ -41,6 +41,13 @@ defmodule Twitter.Core.Database do
     end
   end
 
+  def get_tweet_with_user(tweet_id) do
+    case Content.get_tweet_with_user(tweet_id) do
+      %SchemaTweet{} = tweet -> transform_tweet(tweet)
+      nil -> {:error, :tweet_not_found}
+    end
+  end
+
   def get_tweet_with_comments(tweet_id) do
     case Content.get_tweet_with_comments(tweet_id) do
       %SchemaTweet{} = tweet -> transform_tweet(tweet)
@@ -81,6 +88,10 @@ defmodule Twitter.Core.Database do
       {:db_error, :invalid_user_id} -> {:db_error, :invalid_user_id}
       user -> transform_user(user)
     end
+  end
+
+  def get_user_by_email(email) do
+    Account.get_user_by_email(email)
   end
 
   def like_comment(%{comment_id: _comment_id, user_id: _id} = comment) do
@@ -131,6 +142,12 @@ defmodule Twitter.Core.Database do
 
   defp transform_tweet(%SchemaTweet{} = tweet) do
     new_tweet = Tweet.new(tweet.content)
+
+    new_tweet =
+      case Map.get(tweet, :user) do
+        %Ecto.Association.NotLoaded{} -> new_tweet
+        user -> %{new_tweet | display_name: "@#{user.username}", name: user.name}
+      end
 
     %{
       new_tweet

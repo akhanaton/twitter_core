@@ -22,6 +22,10 @@ defmodule Twitter.Core.Account do
     Repo.delete_all(query)
   end
 
+  def get_user_by_email(email) do
+    Repo.get_by(User, email: email)
+  end
+
   def get_user_details_by_id(user_id) do
     case Repo.get(User, user_id) do
       nil -> {:db_error, :invalid_user_id}
@@ -30,7 +34,7 @@ defmodule Twitter.Core.Account do
   end
 
   def get_user_by_credentials(%{email: email, password: pass}) do
-    user = get_user_by_email(email)
+    user = get_user_by_email_with_followers(email)
 
     cond do
       user && Comeonin.Bcrypt.checkpw(pass, user.password_hash) ->
@@ -50,7 +54,7 @@ defmodule Twitter.Core.Account do
 
   # Private
 
-  defp get_user_by_email(email) do
+  defp get_user_by_email_with_followers(email) do
     Repo.get_by(User, email: email)
     |> Repo.preload([:followers, :following])
   end

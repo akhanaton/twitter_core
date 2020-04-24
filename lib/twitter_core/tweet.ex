@@ -10,7 +10,9 @@ defmodule Twitter.Core.Tweet do
     :id,
     :is_visible?,
     :likes,
-    :user_id
+    :user_id,
+    :display_name,
+    :name
   ]
 
   def add_comment(
